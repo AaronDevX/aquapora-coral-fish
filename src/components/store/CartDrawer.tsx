@@ -1,18 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
+import { useHydrated } from '@/lib/useHydrated';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 
 export function CartDrawer() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getSubtotalCents } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHydrated();
 
   // Close on Escape key
   useEffect(() => {
@@ -163,24 +160,34 @@ export function CartDrawer() {
               </p>
               <div className="space-y-2">
                 <Link
-                  href="/catalogo"
+                  href="/carrito"
                   onClick={() => setIsOpen(false)}
-                  className="w-full py-2.5 px-4 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium flex items-center justify-center transition-colors"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all"
                 >
-                  Seguir Comprando
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Ver Carrito y Pagar</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
+
                 <a
                   href={`https://wa.me/51947177997?text=${encodeURIComponent(
-                    `Hola Aquapora, deseo confirmar mi pedido de ${items.length} producto(s) por un total de S/ ${(subtotalCents / 100).toFixed(2)}:\n` +
+                    `Hola Aquapora, deseo consultar mi carrito de ${items.length} producto(s) por un total de S/ ${(subtotalCents / 100).toFixed(2)}:\n` +
                       items.map((i) => `- ${i.name} (Cant: ${i.quantity})`).join('\n')
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all"
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
                 >
-                  <span>Pedir por WhatsApp</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Pedir directamente por WhatsApp</span>
                 </a>
+
+                <Link
+                  href="/catalogo"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2 text-slate-500 hover:text-slate-300 text-xs font-medium flex items-center justify-center transition-colors"
+                >
+                  Seguir explorando catálogo
+                </Link>
               </div>
             </div>
           )}

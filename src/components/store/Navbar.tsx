@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
+import { useHydrated } from '@/lib/useHydrated';
 import { CartDrawer } from './CartDrawer';
 import {
   Fish,
@@ -35,18 +36,15 @@ function NavbarInner({ categories = defaultCategories }: NavbarProps) {
   const searchParams = useSearchParams();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   const { getTotalItems, setIsOpen: setCartOpen } = useCartStore();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Update searchTerm when URL searchParam changes
   useEffect(() => {
     const currentBuscar = searchParams.get('buscar') || '';
-    setSearchTerm(currentBuscar);
+    const timeoutId = window.setTimeout(() => setSearchTerm(currentBuscar), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [searchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -297,4 +295,3 @@ export function Navbar(props: NavbarProps) {
     </Suspense>
   );
 }
-

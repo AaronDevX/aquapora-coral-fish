@@ -83,7 +83,7 @@ export const products = pgTable(
 // ---------------------------------------------------------------------------
 export const orders = pgTable('orders', {
   id: varchar('id', { length: 40 }).primaryKey(),
-  shortCode: varchar('short_code', { length: 12 }).notNull(),
+  shortCode: varchar('short_code', { length: 12 }).notNull().unique(),
   customerName: varchar('customer_name', { length: 120 }).notNull(),
   customerPhone: varchar('customer_phone', { length: 30 }).notNull(),
   customerAddress: text('customer_address').notNull(),
