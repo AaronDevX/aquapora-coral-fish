@@ -1,3 +1,5 @@
+import { STORE } from './store-config';
+
 export interface WhatsAppOrderItem {
   productName: string;
   quantity: number;
@@ -28,7 +30,7 @@ const formatPEN = (cents: number): string => (cents / 100).toFixed(2);
  * for AQUAPORA CORAL FISH customer service (+51 947 177 997).
  */
 export function generateWhatsAppOrderUrl(data: WhatsAppOrderData): string {
-  const WHATSAPP_PHONE = '51947177997';
+
 
   const itemsDetail = data.items
     .map(
@@ -63,7 +65,7 @@ ${itemsDetail}
 *ID de Pedido:* ${data.orderId}
 _Quedo a la espera de sus datos de cuenta (Yape / Plin / Transferencia BCP o Interbank) para realizar el pago. ¡Gracias!_`;
 
-  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
+  return `${STORE.whatsapp}?text=${encodeURIComponent(message)}`;
 }
 
 export function generateWhatsAppOrderText(data: WhatsAppOrderData): string {

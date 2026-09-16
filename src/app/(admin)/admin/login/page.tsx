@@ -1,9 +1,12 @@
+import { redirect } from 'next/navigation';
+import { getAdminSession } from '@/lib/auth';
 import { Fish, ShieldCheck } from 'lucide-react';
 import { LoginForm } from '@/components/admin/LoginForm';
 
 export const metadata = { title: 'Acceso administrativo | AQUAPORA' };
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  if (await getAdminSession()) redirect('/admin/dashboard');
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(8,145,178,0.18),transparent_70%)]" />
@@ -19,7 +22,7 @@ export default function AdminLoginPage() {
         <LoginForm />
         <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-slate-500">
           <ShieldCheck className="h-4 w-4 text-emerald-400" />
-          Sesión cifrada, HttpOnly y limitada a 7 días
+          Sesión firmada, HttpOnly y limitada a 7 días
         </div>
       </section>
     </main>

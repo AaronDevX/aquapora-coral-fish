@@ -1,11 +1,14 @@
 'use server';
 
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { applyOrderTransition } from '@/lib/order-service';
+import { ORDER_STATUSES } from '@/lib/order-state';
 import { db, runTransaction } from '@/db';
-import { auditLogs, categories, orderItems, orders, products, type ProductSpecs } from '@/db/schema';
+import { auditLogs, categories, products, type ProductSpecs } from '@/db/schema';
 import {
+  allowLoginAttempt,
   createAdminSession,
   destroyAdminSession,
   requireAdminSession,
@@ -21,7 +24,7 @@ export type AdminActionResult = {
 
 const productIdSchema = z.string().uuid('Producto inválido.');
 const stockSchema = z.coerce.number().int().min(0).max(100_000);
-const orderStatusSchema = z.enum(['pending', 'confirmed', 'completed', 'cancelled']);
+const orderStatusSchema = z.enum(ORDER_STATUSES);
 
 const productInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -115,6 +118,8 @@ function invalidateAdminViews() {
   revalidatePath('/admin/auditoria');
   revalidatePath('/');
   revalidatePath('/catalogo');
+  revalidatePath('/favoritos');
+  revalidatePath('/producto/[slug]', 'page');
 }
 
 export async function loginAction(password: string, totpCode: string): Promise<AdminActionResult> {
@@ -125,11 +130,16 @@ export async function loginAction(password: string, totpCode: string): Promise<A
     })
     .safeParse({ password, totpCode });
 
-  if (!credentials.success || !(await verifyAdminCredentials(password, totpCode))) {
-    return { success: false, error: 'La contraseña o el código de autenticación no son válidos.' };
+  try {
+    if (!(await allowLoginAttempt())) return { success: false, error: 'Demasiados intentos. Espera 15 minutos e inténtalo nuevamente.' };
+    if (!credentials.success || !(await verifyAdminCredentials(password, totpCode))) {
+      return { success: false, error: 'La contraseña o el código de autenticación no son válidos.' };
+    }
+    await createAdminSession();
+  } catch {
+    console.error('Acceso administrativo no disponible: revisa la configuración del servidor.');
+    return { success: false, error: 'No se pudo iniciar sesión. Inténtalo nuevamente.' };
   }
-
-  await createAdminSession();
   try {
     await audit('login_succeeded', 'session', 'aquapora-admin', { authenticatedAt: new Date().toISOString() });
   } catch (error) {
@@ -284,92 +294,7 @@ export async function updateOrderStatusAction(
   }
 
   try {
-    await runTransaction(async (tx) => {
-      const [order] = await tx.select().from(orders).where(eq(orders.id, orderIdResult.data)).for('update');
-      if (!order) throw new Error('Pedido no encontrado.');
-
-      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, order.id));
-      if (items.length === 0) throw new Error('El pedido no contiene artículos.');
-
-      const quantityByProduct = new Map<string, { quantity: number; name: string }>();
-      for (const item of items) {
-        const current = quantityByProduct.get(item.productId);
-        quantityByProduct.set(item.productId, {
-          quantity: (current?.quantity ?? 0) + item.quantity,
-          name: item.productName,
-        });
-      }
-
-      let stockDeducted = order.stockDeducted;
-      let stockChange: 'deducted' | 'restored' | 'none' = 'none';
-
-      if (statusResult.data === 'confirmed' && !order.stockDeducted) {
-        const productIds = [...quantityByProduct.keys()].sort();
-        const lockedProducts = await tx
-          .select()
-          .from(products)
-          .where(inArray(products.id, productIds))
-          .orderBy(products.id)
-          .for('update');
-        const productMap = new Map(lockedProducts.map((product) => [product.id, product]));
-
-        for (const [productId, requested] of quantityByProduct) {
-          const product = productMap.get(productId);
-          if (!product || product.stock < requested.quantity) {
-            throw new Error(`Stock insuficiente para “${requested.name}”. El pedido no fue confirmado.`);
-          }
-        }
-
-        for (const [productId, requested] of quantityByProduct) {
-          const product = productMap.get(productId)!;
-          await tx
-            .update(products)
-            .set({ stock: product.stock - requested.quantity, updatedAt: new Date() })
-            .where(eq(products.id, product.id));
-        }
-        stockDeducted = true;
-        stockChange = 'deducted';
-      }
-
-      if (statusResult.data === 'cancelled' && order.stockDeducted) {
-        const productIds = [...quantityByProduct.keys()].sort();
-        const lockedProducts = await tx
-          .select()
-          .from(products)
-          .where(inArray(products.id, productIds))
-          .orderBy(products.id)
-          .for('update');
-        const productMap = new Map(lockedProducts.map((product) => [product.id, product]));
-
-        for (const [productId, requested] of quantityByProduct) {
-          const product = productMap.get(productId);
-          if (!product) throw new Error(`No se encontró el producto “${requested.name}” para devolver su stock.`);
-          await tx
-            .update(products)
-            .set({ stock: product.stock + requested.quantity, updatedAt: new Date() })
-            .where(eq(products.id, product.id));
-        }
-        stockDeducted = false;
-        stockChange = 'restored';
-      }
-
-      await tx
-        .update(orders)
-        .set({ status: statusResult.data, stockDeducted, updatedAt: new Date() })
-        .where(eq(orders.id, order.id));
-      await tx.insert(auditLogs).values({
-        action:
-          stockChange === 'deducted'
-            ? 'order_confirmed'
-            : stockChange === 'restored'
-              ? 'order_cancelled_stock_restored'
-              : 'order_status_updated',
-        targetEntity: 'order',
-        targetId: order.id,
-        changes: { previousStatus: order.status, newStatus: statusResult.data, stockChange },
-        performedBy: 'admin',
-      });
-    });
+    await runTransaction((tx) => applyOrderTransition(tx, orderIdResult.data, statusResult.data));
     invalidateAdminViews();
     return { success: true };
   } catch (error) {

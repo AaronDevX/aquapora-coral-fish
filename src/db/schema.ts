@@ -96,6 +96,7 @@ export const orders = pgTable('orders', {
   totalCents: integer('total_cents').notNull(),
   status: varchar('status', { length: 25 }).default('pending').notNull(),
   stockDeducted: boolean('stock_deducted').default(false).notNull(),
+  receiptTokenHash: varchar('receipt_token_hash', { length: 64 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -177,3 +178,18 @@ export type NewOrderItem = typeof orderItems.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+// Persistent controls shared by every serverless instance.
+export const adminSessions = pgTable('admin_sessions', {
+  id: uuid('id').primaryKey(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+export const authRateLimits = pgTable('auth_rate_limits', {
+  key: varchar('key', { length: 100 }).primaryKey(),
+  attempts: integer('attempts').notNull(),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+});
+export const usedTotpSteps = pgTable('used_totp_steps', {
+  key: varchar('key', { length: 64 }).primaryKey(),
+  step: integer('step').notNull(),
+});

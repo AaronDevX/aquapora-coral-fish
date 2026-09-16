@@ -1,5 +1,8 @@
 'use server';
 
+import { cookies } from 'next/headers';
+import { createReceiptAccess, receiptCookieName } from '@/lib/receipt';
+
 import { randomBytes } from 'node:crypto';
 import { runTransaction } from '@/db';
 import { orders, orderItems, products } from '@/db/schema';
@@ -42,7 +45,7 @@ function generateOrderIdentifiers() {
   );
   const dateStr = `${date.year}${date.month}${date.day}`;
 
-  const orderId = `AQ-${dateStr}-${getRandomAlphaNum(4)}`;
+  const orderId = `AQ-${dateStr}-${getRandomAlphaNum(12)}`;
   const shortCode = `#${getRandomAlphaNum(5)}`;
 
   return { orderId, shortCode };
@@ -72,6 +75,7 @@ export async function createOrderAction(rawData: unknown): Promise<CreateOrderRe
     }
 
     const data = parseResult.data;
+    const receipt = createReceiptAccess();
 
     // 2. Execute an atomic SQL transaction. Retry a generated-code collision
     // (a database constraint remains the source of truth for uniqueness).
@@ -93,6 +97,7 @@ export async function createOrderAction(rawData: unknown): Promise<CreateOrderRe
             .select()
             .from(products)
             .where(inArray(products.id, productIds))
+            .orderBy(products.id)
             .for('update');
 
           const productMap = new Map(dbProducts.map((product) => [product.id, product]));
@@ -157,6 +162,7 @@ export async function createOrderAction(rawData: unknown): Promise<CreateOrderRe
             totalCents,
             status: 'pending',
             stockDeducted: false,
+            receiptTokenHash: receipt.hash,
           });
 
           await tx.insert(orderItems).values(
@@ -202,6 +208,11 @@ export async function createOrderAction(rawData: unknown): Promise<CreateOrderRe
       throw new Error('No fue posible generar un identificador de pedido único.');
     }
 
+    (await cookies()).set(receiptCookieName(result.orderId), receipt.token, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax',
+      path: `/pedido/${result.orderId}`, maxAge: 60 * 60 * 24 * 30,
+    });
+
     return {
       success: true,
       orderId: result.orderId,
@@ -210,7 +221,7 @@ export async function createOrderAction(rawData: unknown): Promise<CreateOrderRe
       totalCents: result.totalCents,
     };
   } catch (error: unknown) {
-    console.error('Error in createOrderAction:', error);
+    if (!(error instanceof CheckoutError)) console.error('No se pudo registrar el pedido.');
     return {
       success: false,
       error:

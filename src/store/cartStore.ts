@@ -1,5 +1,6 @@
 'use client';
 
+import { z } from 'zod';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -13,6 +14,13 @@ export interface CartItem {
   maxStock: number;
   isWysiwyg: boolean;
 }
+
+const storedCart = z.object({ items: z.array(z.object({
+  id: z.string().uuid(), slug: z.string().max(140), name: z.string().max(150),
+  priceCents: z.number().int().nonnegative().max(100_000_000), imageUrl: z.string().max(2000),
+  quantity: z.number().int().positive().max(100_000), maxStock: z.number().int().positive().max(100_000),
+  isWysiwyg: z.boolean(),
+})).max(100) });
 
 interface CartState {
   items: CartItem[];
@@ -33,6 +41,7 @@ export const useCartStore = create<CartState>()(
       isOpen: false,
 
       addItem: (item, quantity = 1) => {
+        if (!Number.isInteger(quantity) || quantity < 1 || item.maxStock < 1 || !Number.isInteger(item.priceCents) || item.priceCents < 0) return;
         const currentItems = get().items;
         const existingItem = currentItems.find((i) => i.id === item.id);
 
@@ -46,7 +55,7 @@ export const useCartStore = create<CartState>()(
           const newQty = Math.min(existingItem.quantity + quantity, item.maxStock);
           set({
             items: currentItems.map((i) =>
-              i.id === item.id ? { ...i, quantity: newQty } : i
+              i.id === item.id ? { ...i, ...item, quantity: newQty } : i
             ),
             isOpen: true,
           });
@@ -71,6 +80,7 @@ export const useCartStore = create<CartState>()(
       },
 
       updateQuantity: (id, quantity) => {
+        if (!Number.isInteger(quantity)) return;
         if (quantity <= 0) {
           get().removeItem(id);
           return;
@@ -79,7 +89,7 @@ export const useCartStore = create<CartState>()(
         set({
           items: get().items.map((i) => {
             if (i.id === id) {
-              return { ...i, quantity: Math.min(quantity, i.maxStock) };
+              return { ...i, quantity: i.isWysiwyg ? 1 : Math.min(quantity, i.maxStock) };
             }
             return i;
           }),
@@ -102,6 +112,14 @@ export const useCartStore = create<CartState>()(
       name: 'aquapora-cart-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),
+      merge: (persisted, current) => {
+        const parsed = storedCart.safeParse(persisted);
+        const unique = new Map<string, CartItem>();
+        if (parsed.success) for (const item of parsed.data.items) unique.set(item.id, {
+          ...item, quantity: item.isWysiwyg ? 1 : Math.min(item.quantity, item.maxStock),
+        });
+        return { ...current, items: [...unique.values()] };
+      },
     }
   )
 );

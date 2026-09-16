@@ -1,0 +1,66 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+
+  # Disabled until the Go-Live data import and provider variables are ready.
+  # Enable repository variable ENABLE_NETLIFY_DEPLOY=true after that review.
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.ENABLE_NETLIFY_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: aquapora-production
+      cancel-in-progress: false
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Validate deployment configuration
+        run: node -e "for (const key of ['NETLIFY_AUTH_TOKEN','NETLIFY_SITE_ID','DATABASE_URL']) if (!process.env[key]) throw new Error('Missing '+key)"
+      - name: Apply additive migrations
+        run: npm run db:migrate
+      - name: Build and upload a draft using production runtime configuration
+        run: npx --yes netlify-cli@27.7.0 deploy --context production --json > "$RUNNER_TEMP/deploy.json"
+      - name: Smoke test draft
+        run: |
+          export SMOKE_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/deploy.json','utf8')).deploy_url")
+          npm run smoke
+      - name: Promote verified deployment
+        run: node scripts/promote-netlify.mjs "$RUNNER_TEMP/deploy.json"
+      - name: Smoke test live site
+        run: |
+          export SMOKE_BASE_URL=$(node -p "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/deploy.json','utf8')).url")
+          npm run smoke

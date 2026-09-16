@@ -23,7 +23,7 @@ export function LoginForm() {
         return;
       }
       const next = searchParams.get('next');
-      const destination = next?.startsWith('/admin/') ? next : '/admin/dashboard';
+      const destination = next && /^\/admin\/(dashboard|productos|pedidos|auditoria)(\?.*)?$/.test(next) ? next : '/admin/dashboard';
       router.replace(destination);
       router.refresh();
     });

@@ -2,7 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingBag, Eye, Sparkles } from 'lucide-react';
+import { ShoppingBag, Eye, Sparkles, Heart } from 'lucide-react';
+import { useWishlistStore } from '@/store/wishlistStore';
+import { useHydrated } from '@/lib/useHydrated';
 import { useCartStore } from '@/store/cartStore';
 import { DifficultyBadge } from './MarineSpecsBadge';
 import type { Product } from '@/db/schema';
@@ -12,7 +14,10 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCartStore();
+  const addItem = useCartStore((state) => state.addItem);
+  const toggleFavorite = useWishlistStore((state) => state.toggleFavorite);
+  const favorite = useWishlistStore((state) => state.ids.includes(product.id));
+  const hydrated = useHydrated();
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,6 +70,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute top-2.5 right-2.5 z-10">
           <DifficultyBadge difficulty={product.specs?.difficulty} />
         </div>
+
+        <button type="button" onClick={() => toggleFavorite(product.id)}
+          aria-pressed={hydrated && favorite}
+          aria-label={`${hydrated && favorite ? 'Quitar de' : 'Agregar a'} favoritos: ${product.name}`}
+          className="absolute bottom-3 right-3 z-30 rounded-full bg-white p-2.5 text-rose-600 shadow-md transition hover:scale-110 focus-visible:outline-2 focus-visible:outline-cyan-400">
+          <Heart className="h-5 w-5" fill={hydrated && favorite ? 'currentColor' : 'none'} />
+        </button>
 
         {/* Out of Stock Overlay */}
         {isOutOfStock && (

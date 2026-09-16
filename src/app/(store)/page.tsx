@@ -26,7 +26,7 @@ const categoryImageMap: Record<string, string> = {
     'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80',
   'peces-marinos':
     'https://images.unsplash.com/photo-1535591273668-578e31182c4f?auto=format&fit=crop&w=800&q=80',
-  'anemonas-invertebrados':
+  'anemonas':
     'https://images.unsplash.com/photo-1563281577-a7be47e20db9?auto=format&fit=crop&w=800&q=80',
   'alimentos-aditivos':
     'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80',

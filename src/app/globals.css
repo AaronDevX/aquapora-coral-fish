@@ -55,3 +55,50 @@ body {
 .glow-teal {
   box-shadow: 0 0 25px -5px rgba(20, 184, 166, 0.35);
 }
+
+/* Official storefront header. Scoped so administration keeps its own theme. */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.store-header { position: sticky; top: 0; z-index: 40; color-scheme: light; background: #fff; color: #102b58; font-family: Inter, 'Segoe UI', Arial, sans-serif; }
+.store-header-main { height: 104px; margin: 0 18px; display: flex; align-items: center; gap: 24px; }
+.store-logo { display: block; flex: 0 0 130px; }
+.store-logo img { width: 100px; height: 100px; object-fit: contain; }
+.store-search { flex: 1; position: relative; min-width: 0; }
+.store-search input { width: 100%; height: 47px; padding: 0 48px 0 18px; border: 1px solid #d6dfeb; border-radius: 12px; background: #fff; color: #102b58; font: inherit; font-size: 16px; box-shadow: 0 1px 3px #102b5805; }
+.store-search input::placeholder { color: #888; opacity: 1; }
+.store-search button { position: absolute; right: 0; top: 0; height: 47px; width: 48px; display: grid; place-items: center; cursor: pointer; }
+.store-header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.store-action { display: flex; align-items: center; gap: 8px; padding: 10px 12px; text-align: left; cursor: pointer; border-radius: 8px; }
+.store-action-copy { display: flex; flex-direction: column; font-size: 16px; font-weight: 700; line-height: 1.15; }
+.store-action-copy small { font-size: 11px; font-weight: 600; color: #738096; margin-top: 2px; }
+.store-cart-count { min-width: 20px; height: 20px; border-radius: 50%; padding: 0 5px; display: grid; place-items: center; background: #0755ba; color: white; font-size: 11px; font-weight: 700; margin-left: -4px; }
+.store-navigation { height: 52px; overflow-x: auto; border-top: 1px solid #edf0f4; border-bottom: 1px solid #d6dfeb; }
+.store-navigation > div { display: flex; justify-content: center; width: max-content; min-width: 100%; height: 51px; gap: 2px; padding: 0 18px; }
+.store-nav-link { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 4px; padding: 15px 20px 13px; border-bottom: 3px solid transparent; font-size: 14px; font-weight: 650; line-height: 20px; white-space: nowrap; }
+.store-nav-link.active { color: #07899a; border-bottom-color: #10b5bf; }
+.store-nav-link:hover, .store-action:hover { color: #07899a; background: #effbfc; }
+.store-header :focus-visible, .store-mobile-links :focus-visible { outline: 2px solid #07899a; outline-offset: 3px; }
+.store-menu-toggle { display: none; padding: 8px; cursor: pointer; }
+.store-mobile-links { display: flex; flex-direction: column; align-items: stretch; }
+.store-mobile-links .store-nav-link { justify-content: flex-start; }
+@media (max-width: 1100px) {
+  .store-header-main { gap: 14px; }
+  .store-logo { flex-basis: 100px; }
+  .store-action { padding: 8px 4px; }
+  .store-navigation > div { justify-content: flex-start; }
+  .store-menu-toggle { display: block; }
+}
+@media (max-width: 767px) {
+  .store-header-main { height: auto; min-height: 128px; display: grid; grid-template-columns: 64px 1fr; margin: 0 14px; gap: 8px 14px; padding: 6px 0 12px; }
+  .store-logo img { width: 64px; height: 64px; }
+  .store-header-actions { justify-content: flex-end; grid-column: 2; grid-row: 1; gap: 8px; }
+  .store-action-copy { font-size: 13px; }
+  .store-action-copy small { font-size: 10px; }
+  .store-action { gap: 5px; }
+  .store-action svg { width: 22px; }
+  .store-search { grid-column: 1 / -1; grid-row: 2; }
+  .store-search input, .store-search button { height: 40px; }
+  .store-search input { font-size: 14px; }
+  .store-nav-link { padding-right: 14px; padding-left: 14px; }
+}
+@media (max-width: 380px) { .store-action-copy { display: none; } }

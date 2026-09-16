@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { STORE } from '@/lib/store-config';
+import { Modal } from '@/components/ui/Modal';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore } from '@/store/cartStore';
@@ -11,38 +12,17 @@ export function CartDrawer() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getSubtotalCents } = useCartStore();
   const mounted = useHydrated();
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, setIsOpen]);
-
-  if (!mounted) return null;
-  if (!isOpen) return null;
-
   const subtotalCents = getSubtotalCents();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-        onClick={() => setIsOpen(false)}
-        aria-hidden="true"
-      />
-
+    <Modal open={mounted && isOpen} onClose={() => setIsOpen(false)} titleId="cart-title">
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-slate-900 border-l border-slate-800 text-slate-100 flex flex-col shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-950/60">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-lg font-bold tracking-wide text-white">Tu Carrito de Arrecife</h2>
+              <h2 id="cart-title" className="text-lg font-bold tracking-wide text-white">Tu Carrito de Arrecife</h2>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -170,7 +150,7 @@ export function CartDrawer() {
                 </Link>
 
                 <a
-                  href={`https://wa.me/51947177997?text=${encodeURIComponent(
+                  href={`${STORE.whatsapp}?text=${encodeURIComponent(
                     `Hola Aquapora, deseo consultar mi carrito de ${items.length} producto(s) por un total de S/ ${(subtotalCents / 100).toFixed(2)}:\n` +
                       items.map((i) => `- ${i.name} (Cant: ${i.quantity})`).join('\n')
                   )}`}
@@ -193,6 +173,6 @@ export function CartDrawer() {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

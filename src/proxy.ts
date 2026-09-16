@@ -6,17 +6,15 @@ export async function proxy(request: NextRequest) {
   const session = await verifySessionToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
   const isLoginRoute = pathname === '/admin/login';
 
-  if (isLoginRoute && session) {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-  }
-
   if (!isLoginRoute && !session) {
     const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
 
 export const config = {

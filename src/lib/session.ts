@@ -2,10 +2,11 @@ import { SignJWT, jwtVerify } from 'jose';
 
 export const ADMIN_SESSION_COOKIE = 'aquapora_admin_session';
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7;
-const DEVELOPMENT_AUTH_SECRET = 'aquapora-local-development-auth-secret-change-before-production';
+
 
 export interface AdminSession {
   subject: string;
+  id: string;
   role: 'admin';
   expiresAt: Date;
 }
@@ -13,21 +14,18 @@ export interface AdminSession {
 function getSessionSecret(): Uint8Array {
   const value = process.env.AUTH_SECRET;
 
-  if (value && value.length >= 32) {
-    return new TextEncoder().encode(value);
+  if (!value || !/^[a-f0-9]{64}$/i.test(value)) {
+    throw new Error('Configura AUTH_SECRET con npm run admin:setup.');
   }
-
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('AUTH_SECRET debe tener al menos 32 caracteres en producción.');
-  }
-
-  return new TextEncoder().encode(DEVELOPMENT_AUTH_SECRET);
+  return new TextEncoder().encode(value);
 }
 
-export async function createSessionToken(): Promise<string> {
+export async function createSessionToken(id: string): Promise<string> {
   return new SignJWT({ role: 'admin' })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setSubject('aquapora-admin')
+    .setAudience('aquapora-admin-panel')
+    .setJti(id)
     .setIssuer('aquapora-admin')
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
@@ -41,14 +39,16 @@ export async function verifySessionToken(token?: string): Promise<AdminSession |
     const { payload } = await jwtVerify(token, getSessionSecret(), {
       algorithms: ['HS256'],
       issuer: 'aquapora-admin',
+      audience: 'aquapora-admin-panel',
     });
 
-    if (payload.sub !== 'aquapora-admin' || payload.role !== 'admin' || !payload.exp) {
+    if (payload.sub !== 'aquapora-admin' || payload.role !== 'admin' || !payload.exp || !payload.jti) {
       return null;
     }
 
     return {
       subject: payload.sub,
+      id: payload.jti,
       role: 'admin',
       expiresAt: new Date(payload.exp * 1000),
     };

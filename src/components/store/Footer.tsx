@@ -1,3 +1,4 @@
+import { STORE, CATALOG_CATEGORIES } from '@/lib/store-config';
 import Link from 'next/link';
 import {
   Fish,
@@ -90,12 +91,12 @@ export function Footer() {
 
             <div className="pt-2 text-xs space-y-1.5 border-t border-slate-900 text-slate-400">
               <p className="font-semibold text-slate-300">
-                AQUAPORA WORLD TRADING S.A.C.
+                {STORE.legalName}
               </p>
-              <p>RUC: <span className="font-mono text-cyan-400 font-medium">20611125543</span></p>
+              <p>RUC: <span className="font-mono text-cyan-400 font-medium">{STORE.ruc}</span></p>
               <div className="flex items-center gap-1.5 pt-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <span>José Marti 275, Lima, Perú</span>
+                <span>{STORE.address}</span>
               </div>
             </div>
           </div>
@@ -106,36 +107,9 @@ export function Footer() {
               Categorías Principales
             </h5>
             <ul className="space-y-2 text-xs">
-              <li>
-                <Link href="/catalogo?categoria=corales-sps" className="hover:text-cyan-400 transition-colors">
-                  Corales SPS (Acroporas)
-                </Link>
-              </li>
-              <li>
-                <Link href="/catalogo?categoria=corales-lps" className="hover:text-cyan-400 transition-colors">
-                  Corales LPS (Torches, Hammers)
-                </Link>
-              </li>
-              <li>
-                <Link href="/catalogo?categoria=corales-blandos" className="hover:text-cyan-400 transition-colors">
-                  Corales Blandos y Zoanthus
-                </Link>
-              </li>
-              <li>
-                <Link href="/catalogo?categoria=peces-marinos" className="hover:text-cyan-400 transition-colors">
-                  Peces Marinos Cuarentenados
-                </Link>
-              </li>
-              <li>
-                <Link href="/catalogo?categoria=anemonas-invertebrados" className="hover:text-cyan-400 transition-colors">
-                  Anémonas y Equipo de Limpieza
-                </Link>
-              </li>
-              <li>
-                <Link href="/catalogo?categoria=alimentos-aditivos" className="hover:text-cyan-400 transition-colors">
-                  Alimentos y Aditivos de Química
-                </Link>
-              </li>
+              {CATALOG_CATEGORIES.map(({ slug, name }) => <li key={slug}><Link href={`/catalogo?categoria=${slug}`} className="hover:text-cyan-400 transition-colors">{name}</Link></li>)}
+              <li><Link href="/favoritos" className="hover:text-cyan-400">Favoritos</Link></li>
+              <li><Link href="/contacto" className="hover:text-cyan-400">Contacto</Link></li>
             </ul>
           </div>
 
@@ -163,13 +137,13 @@ export function Footer() {
             </h5>
             <div className="space-y-3 text-xs">
               <a
-                href="https://wa.me/51947177997"
+                href={STORE.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-950/60 border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/60 transition-colors w-full justify-center font-medium"
               >
                 <Phone className="w-4 h-4 text-emerald-400" />
-                <span>WhatsApp: +51 947 177 997</span>
+                <span>WhatsApp: {STORE.phone}</span>
                 <ExternalLink className="w-3 h-3 text-emerald-400/70 ml-auto" />
               </a>
 
@@ -202,7 +176,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-slate-900 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>
-            © {new Date().getFullYear()} AQUAPORA WORLD TRADING S.A.C. Todos los derechos reservados.
+            © {new Date().getFullYear()} {STORE.legalName} Todos los derechos reservados.
           </p>
           <p className="text-[11px] text-slate-400">
             Acuariofilia Marina Sustentable · Lima, Perú

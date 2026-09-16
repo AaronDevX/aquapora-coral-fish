@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env.local', quiet: true });
 
 import { db } from './index';
 import { categories, products, type NewCategory, type NewProduct } from './schema';
@@ -42,9 +42,9 @@ const initialCategories: NewCategory[] = [
     isActive: true,
   },
   {
-    id: 'anemonas-invertebrados',
-    name: 'Anémonas e Invertebrados',
-    slug: 'anemonas-invertebrados',
+    id: 'anemonas',
+    name: 'Anémonas',
+    slug: 'anemonas',
     description:
       'Anémonas BTA, gambas limpiadoras, caracoles turbo y equipo de limpieza para control biológico.',
     displayOrder: 5,
@@ -56,9 +56,11 @@ const initialCategories: NewCategory[] = [
     slug: 'alimentos-aditivos',
     description:
       'Suplementación química, fito y zooplancton, alimentos especializados para corales y peces marinos.',
-    displayOrder: 6,
+    displayOrder: 8,
     isActive: true,
   },
+  { id: 'invertebrados', slug: 'invertebrados', name: 'Invertebrados', displayOrder: 6, isActive: true },
+  { id: 'accesorios', slug: 'accesorios', name: 'Accesorios', displayOrder: 7, isActive: true },
 ];
 
 const initialProducts: NewProduct[] = [
@@ -274,7 +276,7 @@ const initialProducts: NewProduct[] = [
     slug: 'anemona-burbuja-rose-bta-ultra',
     name: 'Anémona Burbuja Rose BTA Ultra',
     scientificName: 'Entacmaea quadricolor',
-    categoryId: 'anemonas-invertebrados',
+    categoryId: 'anemonas',
     type: 'Anémona Marina',
     priceCents: 26000,
     stock: 3,
@@ -303,7 +305,7 @@ const initialProducts: NewProduct[] = [
     slug: 'gamba-limpiadora-escarlata',
     name: 'Gamba Limpiadora Escarlata',
     scientificName: 'Lysmata amboinensis',
-    categoryId: 'anemonas-invertebrados',
+    categoryId: 'invertebrados',
     type: 'Invertebrado Arrecifal',
     priceCents: 8500,
     stock: 8,

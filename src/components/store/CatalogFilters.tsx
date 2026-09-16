@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeCategory, CATALOG_CATEGORIES } from '@/lib/store-config';
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, X, RotateCcw, Check } from 'lucide-react';
@@ -28,7 +29,9 @@ export function CatalogFilters({ categories }: CatalogFiltersProps) {
   const [isPending, startTransition] = useTransition();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  const currentCategory = searchParams.get('categoria') || '';
+  const rawCategory = normalizeCategory(searchParams.get('categoria') ?? searchParams.get('cat') ?? '');
+  const currentCategory = CATALOG_CATEGORIES.find((item) => item.ids.includes(rawCategory) && !rawCategory.startsWith('corales-'))?.slug ?? rawCategory;
+  const sale = searchParams.get('ofertas') === 'true' || searchParams.get('sale') === '1';
   const currentDifficulty = searchParams.get('dificultad') || '';
   const currentSearch = searchParams.get('buscar') || '';
   const currentOrder = searchParams.get('orden') || 'recientes';
@@ -37,6 +40,9 @@ export function CatalogFilters({ categories }: CatalogFiltersProps) {
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
+
+    if ('categoria' in updates) params.delete('cat');
+    if ('ofertas' in updates) params.delete('sale');
 
     Object.entries(updates).forEach(([key, value]) => {
       if (value === null || value === '' || value === 'recientes') {
@@ -64,7 +70,7 @@ export function CatalogFilters({ categories }: CatalogFiltersProps) {
   };
 
   const hasActiveFilters = Boolean(
-    currentCategory || currentDifficulty || currentSearch || (currentOrder && currentOrder !== 'recientes')
+    sale || currentCategory || currentDifficulty || currentSearch || (currentOrder && currentOrder !== 'recientes')
   );
 
   const filterContent = (
@@ -135,6 +141,7 @@ export function CatalogFilters({ categories }: CatalogFiltersProps) {
         </div>
       </div>
 
+      <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={sale} onChange={(event) => updateFilters({ ofertas: event.target.checked ? 'true' : null })} className="accent-cyan-400" />Solo ofertas</label>
       {/* Difficulty Filter */}
       <div>
         <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2.5">
@@ -219,7 +226,7 @@ export function CatalogFilters({ categories }: CatalogFiltersProps) {
 
       {/* Desktop Sticky Sidebar */}
       <aside className="hidden lg:block w-64 shrink-0">
-        <div className="sticky top-28 p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md space-y-6">
+        <div className="sticky top-44 p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wide">
               <SlidersHorizontal className="w-4 h-4 text-cyan-400" />

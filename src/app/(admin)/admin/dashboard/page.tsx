@@ -39,7 +39,8 @@ export default async function AdminDashboardPage() {
             'corales-lps',
             'corales-blandos',
             'peces-marinos',
-            'anemonas-invertebrados',
+            'anemonas',
+            'invertebrados',
           ])
         )
       )

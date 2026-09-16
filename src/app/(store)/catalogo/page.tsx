@@ -1,5 +1,6 @@
+import { CATALOG_CATEGORIES, categoryIds, normalizeCategory, firstQueryValue } from '@/lib/store-config';
 import { db, products, categories } from '@/db';
-import { eq, and, or, ilike, asc, desc, sql, type SQL } from 'drizzle-orm';
+import { eq, and, or, ilike, asc, desc, sql, inArray, type SQL } from 'drizzle-orm';
 import { ProductCard } from '@/components/store/ProductCard';
 import { CatalogFilters } from '@/components/store/CatalogFilters';
 import { Fish, Sparkles, FilterX } from 'lucide-react';
@@ -7,19 +8,18 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 
 interface CatalogPageProps {
-  searchParams: Promise<{
-    categoria?: string;
-    dificultad?: string;
-    buscar?: string;
-    orden?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export const revalidate = 60; // ISR 60s
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const resolvedSearchParams = await searchParams;
-  const { categoria, dificultad, buscar, orden } = resolvedSearchParams;
+  const dificultad = firstQueryValue(resolvedSearchParams.dificultad);
+  const buscar = firstQueryValue(resolvedSearchParams.buscar).slice(0, 150);
+  const orden = firstQueryValue(resolvedSearchParams.orden);
+  const categoria = normalizeCategory(resolvedSearchParams.categoria ?? resolvedSearchParams.cat ?? '');
+  const ofertas = firstQueryValue(resolvedSearchParams.ofertas) === 'true' || firstQueryValue(resolvedSearchParams.sale) === '1';
 
   // 1. Fetch all active categories for filter bar
   const allCategories = await db
@@ -35,17 +35,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   // 2. Build where conditions
   const conditions: SQL[] = [eq(products.isActive, true)];
 
-  // Category filter
   if (categoria) {
-    const matchedCategory = allCategories.find(
-      (c) => c.slug === categoria || c.id === categoria
-    );
-    if (matchedCategory) {
-      conditions.push(eq(products.categoryId, matchedCategory.id));
-    } else {
-      conditions.push(eq(products.categoryId, categoria));
-    }
+    const requested = categoryIds(categoria);
+    const ids = allCategories.filter((item) => requested.includes(item.id) || requested.includes(item.slug)).map((item) => item.id);
+    conditions.push(ids.length ? inArray(products.categoryId, ids) : sql`false`);
   }
+  if (ofertas) conditions.push(eq(products.isSale, true));
 
   // Difficulty filter (inside jsonb specs)
   if (dificultad) {
@@ -79,9 +74,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     .where(and(...conditions))
     .orderBy(orderByClause);
 
-  const activeCategoryObj = categoria
+  const activeCategoryObj = CATALOG_CATEGORIES.find((item) => item.slug === categoria) ?? (categoria
     ? allCategories.find((c) => c.slug === categoria || c.id === categoria)
-    : null;
+    : null);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -94,7 +89,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              {activeCategoryObj ? activeCategoryObj.name : 'Catálogo General de Corales y Peces'}
+              {ofertas ? `Ofertas${activeCategoryObj ? ` · ${activeCategoryObj.name}` : ''}` : activeCategoryObj?.name ?? 'Catálogo General de Corales y Peces'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1.5 max-w-2xl">
               Ejemplares marinos sanos, aclimatados y cuarentenados con especificaciones técnicas de luz, flujo y requerimientos de acuario.
@@ -120,7 +115,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             </aside>
           }
         >
-          <CatalogFilters categories={allCategories} />
+          <CatalogFilters key={`${categoria}:${buscar ?? ''}`} categories={[...CATALOG_CATEGORIES.map(({ slug, name }) => ({ id: slug, slug, name })), ...allCategories.filter((item) => item.slug.startsWith('corales-'))]} />
         </Suspense>
 
         {/* Results Area */}

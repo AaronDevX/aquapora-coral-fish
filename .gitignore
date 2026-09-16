@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Private access instructions and local verification artifacts
+.local/
+.netlify/
+/test-results/
+/playwright-report/

@@ -55,8 +55,8 @@ export function OrdersManager({ orders: initialOrders }: { orders: AdminOrder[] 
       const result = await updateOrderStatusAction(order.id, status);
       setPendingId(null);
       if (!result.success) { setMessage(result.error ?? 'No se pudo actualizar el pedido.'); return; }
-      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status, stockDeducted: status === 'confirmed' ? true : status === 'cancelled' ? false : item.stockDeducted } : item));
-      setSelected((current) => current?.id === order.id ? { ...current, status, stockDeducted: status === 'confirmed' ? true : status === 'cancelled' ? false : current.stockDeducted } : current);
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status, stockDeducted: (status === 'confirmed' || status === 'completed') ? true : status === 'cancelled' ? false : item.stockDeducted } : item));
+      setSelected((current) => current?.id === order.id ? { ...current, status, stockDeducted: (status === 'confirmed' || status === 'completed') ? true : status === 'cancelled' ? false : current.stockDeducted } : current);
     });
   }
 

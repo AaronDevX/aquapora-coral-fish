@@ -35,7 +35,7 @@ export type ShippingMethodKey = keyof typeof SHIPPING_METHODS;
 
 export const checkoutItemSchema = z.object({
   productId: z.string().uuid({ message: 'ID de producto inválido' }),
-  quantity: z.number().int().min(1, { message: 'La cantidad debe ser al menos 1' }),
+  quantity: z.number().int().max(100_000).min(1, { message: 'La cantidad debe ser al menos 1' }),
 });
 
 export const checkoutSchema = z.object({
@@ -82,6 +82,7 @@ export const checkoutSchema = z.object({
 
   items: z
     .array(checkoutItemSchema)
+    .max(100, { message: 'El carrito admite hasta 100 productos distintos' })
     .min(1, { message: 'El carrito no puede estar vacío' }),
 }).superRefine((data, ctx) => {
   const productIds = new Set<string>();

@@ -1,5 +1,6 @@
 'use server';
 
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, validImageSignature } from '@/lib/upload-validation';
 import { v2 as cloudinary } from 'cloudinary';
 import { requireAdminSession } from '@/lib/auth';
 
@@ -21,16 +22,17 @@ export async function uploadProductImageAction(formData: FormData): Promise<Uplo
   if (!(image instanceof File) || image.size === 0) {
     return { success: false, error: 'Selecciona una imagen para subir.' };
   }
-  if (!image.type.startsWith('image/')) {
+  if (!IMAGE_TYPES.includes(image.type)) {
     return { success: false, error: 'El archivo debe ser una imagen.' };
   }
-  if (image.size > 8 * 1024 * 1024) {
-    return { success: false, error: 'La imagen no puede superar 8 MB.' };
+  if (image.size > MAX_IMAGE_BYTES) {
+    return { success: false, error: 'La imagen no puede superar 4 MB.' };
   }
 
   try {
     configureCloudinary();
     const buffer = Buffer.from(await image.arrayBuffer());
+    if (!validImageSignature(buffer, image.type)) return { success: false, error: 'El contenido del archivo no corresponde a una imagen admitida.' };
     const result = await new Promise<{ secure_url?: string }>((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
         {

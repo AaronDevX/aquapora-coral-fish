@@ -51,6 +51,7 @@ export function ProductFormDialog({ product, categories, onClose, onSaved }: Pro
   const [previewUrl, setPreviewUrl] = useState(product?.imageUrl ?? '');
 
   async function uploadImage(file: File) {
+    if (file.size > 4 * 1024 * 1024) { setError('La imagen no puede superar 4 MB.'); return; }
     setUploading(true);
     setError(null);
     const formData = new FormData();
@@ -103,11 +104,10 @@ export function ProductFormDialog({ product, categories, onClose, onSaved }: Pro
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="sr-only" disabled={uploading || pending} onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
-                  setPreviewUrl(URL.createObjectURL(file));
                   void uploadImage(file);
                 }} />
               </label>
-              <p className="mt-2 text-[10px] leading-relaxed text-slate-500">JPG, PNG, WebP o AVIF; máximo 8 MB. Se optimiza y convierte a WebP.</p>
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-500">JPG, PNG, WebP o AVIF; máximo 4 MB. Se optimiza y convierte a WebP.</p>
               {uploading && <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-cyan-300"><LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Subiendo a Cloudinary…</p>}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

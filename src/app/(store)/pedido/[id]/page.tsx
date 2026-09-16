@@ -1,3 +1,6 @@
+import { cookies } from 'next/headers';
+import { getAdminSession } from '@/lib/auth';
+import { receiptCookieName, verifyReceiptToken, isReceiptCurrent } from '@/lib/receipt';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -31,9 +34,14 @@ interface OrderPageProps {
 }
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Comprobante privado | AQUAPORA', robots: { index: false, follow: false } };
 
 export default async function OrderConfirmationPage({ params }: OrderPageProps) {
   const { id } = await params;
+  if (!/^AQ-[0-9]{8}-[A-Z0-9]{4,12}$/.test(id)) notFound();
+  const token = (await cookies()).get(receiptCookieName(id))?.value;
+  const admin = await getAdminSession();
+  if (!token && !admin) notFound();
 
   // 1. Fetch order with relational orderItems and products
   const order = await db.query.orders.findFirst({
@@ -47,7 +55,7 @@ export default async function OrderConfirmationPage({ params }: OrderPageProps) 
     },
   });
 
-  if (!order) {
+  if (!order || (!admin && (!verifyReceiptToken(token, order.receiptTokenHash) || !isReceiptCurrent(order.createdAt)))) {
     notFound();
   }
 

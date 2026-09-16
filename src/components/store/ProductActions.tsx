@@ -1,5 +1,6 @@
 'use client';
 
+import { STORE } from '@/lib/store-config';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { ShoppingBag, MessageCircle, Minus, Plus, Check, AlertCircle } from 'lucide-react';
@@ -40,7 +41,7 @@ export function ProductActions({ product }: ProductActionsProps) {
   const whatsappMessage = encodeURIComponent(
     `Hola Aquapora, tengo dudas sobre el producto: ${product.name} (ID: ${product.id})`
   );
-  const whatsappUrl = `https://wa.me/51947177997?text=${whatsappMessage}`;
+  const whatsappUrl = `${STORE.whatsapp}?text=${whatsappMessage}`;
 
   return (
     <div className="space-y-4 pt-2">
